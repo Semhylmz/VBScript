@@ -4,58 +4,90 @@ param(
 )
 
 # ==========================================
-# AYARLAR: TEAMS WEBHOOK
+# TEAMS WEBHOOK AYARI
 # ==========================================
-# Teams Kanalı -> Connectors -> Incoming Webhook yolundan aldığınız URL'i buraya yapıştırın.
-$webhookUrl = "https://outlook.office.com/webhook/SİZİN_WEBHOOK_URL_ADRESİNİZ..."
 
-# ==========================================
-# MESAJ İÇERİĞİ OLUŞTURMA
-# ==========================================
-$channelMessageText = @"
-🚀 **SAP Rutin Kontrol Otomasyonu Tamamlandı**
+$webhookUrl = "Sizin  webhook url"
 
-✅ **Durum:** Başarılı
-📊 **Kontrol Edilen Sistem Sayısı:** $SystemCount
-⏱️ **Toplam Süre:** $Duration saniye
-
-**Kontrol Edilen Modüller:**
-- ST22 (Dump Analizi)
-- ST04 (DB Performansı)
-- SM19 (Güvenlik Logları)
-- SCC4 (Client Ayarları)
-- DB13 (Takvim Planları)
-- DB12 (Yedekleme Logları)
-- SOST (Mail Kuyruğu)
-- SM37 (İptal Olan Joblar)
-
-_Bu mesaj SAP GUI Scripting otomasyonu tarafından otomatik gönderilmiştir._
-"@
-
-$message = @{
-    text = $channelMessageText
+if ([string]::IsNullOrWhiteSpace($webhookUrl)) {
+    Write-Host "Webhook URL boş. Mesaj gönderilmedi."
+    exit
 }
 
 # ==========================================
-# GÖNDERİM VE LOGLAMA
+# ADAPTIVE CARD OLUŞTURMA
 # ==========================================
+
+$card = @{
+    type = "message"
+    attachments = @(
+        @{
+            contentType = "application/vnd.microsoft.card.adaptive"
+            content = @{
+                type = "AdaptiveCard"
+                version = "1.4"
+                body = @(
+                    @{
+                        type = "TextBlock"
+                        text = "SAP Ekran Kontrol Otomasyonu Tamamlandı"
+                        weight = "Bolder"
+                        size = "Large"
+                        color = "Good"
+                    },
+                    @{
+                        type = "FactSet"
+                        facts = @(
+                            @{
+                                title = "Durum:"
+                                value = "Basarılı"
+                            },
+                            @{
+                                title = "Kontrol Edilen Sistem:"
+                                value = $SystemCount
+                            },
+                            @{
+                                title = "Toplam Süre:"
+                                value = "$Duration saniye"
+                            }
+                        )
+                    },
+                    @{
+                        type = "TextBlock"
+                        text = "Kontrol Edilen Modüller"
+                        weight = "Bolder"
+                        size = "Medium"
+                        spacing = "Medium"
+                    },
+                    @{
+                        type = "TextBlock"
+                        text = "- ST22 (Dump Analizi)`n- ST04 (DB Performansı)`n- SM19 (Güvenlik Logları)`n- SCC4 (Client Ayarları)`n- DB13 (Takvim Planları)`n- DB12 (Yedekleme Logları)`n- SOST (Mail Kuyrugu)`n- SM37 (İptal Olan Joblar)"
+                        wrap = $true
+                    },
+                    @{
+                        type = "TextBlock"
+                        text = "Bu mesaj SAP GUI Scripting otomasyonu tarafından gönderildi."
+                        spacing = "Medium"
+                        isSubtle = $true
+                        wrap = $true
+                    }
+                )
+            }
+        }
+    )
+}
+
 try {
-    # JSON Formatına Çevir
-    $json = $message | ConvertTo-Json -Depth 3
-    
-    # Teams'e POST isteği at
-    Invoke-RestMethod -Uri $webhookUrl -Method Post -ContentType 'application/json' -Body $json
+    $json = $card | ConvertTo-Json -Depth 10 -Compress
+
+    Invoke-RestMethod -Uri $webhookUrl -Method Post -ContentType "application/json" -Body $json
 }
 catch {
-    # Hata durumunda sessizce log tut (Kullanıcıyı rahatsız etme)
     $err = $_ | Out-String
     $logPath = "$env:ProgramData\TeamsNotify\sendlog.txt"
     
-    # Log klasörü yoksa oluştur
     if (!(Test-Path (Split-Path $logPath))) {
         New-Item -ItemType Directory -Path (Split-Path $logPath) -Force | Out-Null
     }
-    
-    # Hatayı dosyaya yaz
+
     Add-Content -Path $logPath -Value ("[{0}] Gönderim hatası: {1}" -f (Get-Date), $err)
 }
