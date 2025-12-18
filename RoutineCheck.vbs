@@ -7,7 +7,7 @@ Dim WScriptShell : Set WScriptShell = CreateObject("WScript.Shell")
 ' ==========================================
 Dim systems
 ' Buraya kendi SAP Sistem ID'lerinizi (SID) yazın
-systems = Array("PRD", "QAS", "DEV") 
+systems = Array("SID","SID","SID")
 
 ' ==========================================
 ' YARDIMCI FONKSİYONLAR
@@ -108,7 +108,7 @@ For i = LBound(systems) To UBound(systems)
     Dim tabAdmin : Set tabAdmin = SafeFindById(session, "wnd[0]/usr/tabsTABSTRIP2/tabpADMIN")
     If Not tabAdmin Is Nothing Then 
         tabAdmin.select
-        WScript.Sleep 1000
+        WScript.Sleep 1700
     End If
     SafeFindById(session, "wnd[0]").sendVKey 3 ' Geri
 
@@ -179,6 +179,6 @@ totalSeconds = Round(endTime - startTime, 2)
 ' SONUÇ BİLDİRİMİ (POWERSHELL TETİKLEME)
 ' ==========================================
 ' PowerShell dosyanızın yolunu aşağıdan kontrol edin: C:\Scripts\TeamsNotify.ps1
-WScriptShell.Run "powershell.exe -ExecutionPolicy Bypass -File C:\Scripts\TeamsNotify.ps1 -Duration " & totalSeconds & " -SystemCount " & (UBound(systems)+1), 0, True
+WScriptShell.Run "powershell.exe -ExecutionPolicy Bypass -File ""C:\Users\semih.yilmaz\Desktop\TeamsNotify.ps1"" -Duration """ & totalSeconds & """ -SystemCount """ & (UBound(systems)+1) & """", 0, True
 
 MsgBox "Tüm sistem kontrolleri tamamlandı.", vbInformation, "İşlem Bitti"
